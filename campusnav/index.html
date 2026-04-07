@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Campus PathFinder – Amrita Vishwa Vidyapeetham Nagercoil</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════
+   CSS VARIABLES & RESET
+═══════════════════════════════════════ */
+:root{
+  --bg:       #070c14;
+  --surface:  #0d1520;
+  --card:     #111d2e;
+  --border:   #1a2d42;
+  --border2:  #243650;
+  --amber:    #f0a500;
+  --amber2:   #ffd166;
+  --amber-g:  linear-gradient(135deg,#f0a500,#ffd166);
+  --blue:     #1e7fff;
+  --blue2:    #5ba8ff;
+  --green:    #0fcf7a;
+  --red:      #ff3d5a;
+  --text:     #dce8f5;
+  --muted:    #5a7a99;
+  --muted2:   #8aa8c8;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  display:flex;flex-direction:column;
+}
+
+/* ═══════════════════════════════════════
+   HEADER
+═══════════════════════════════════════ */
+header{
+  flex-shrink:0;
+  background:var(--surface);
+  border-bottom:1px solid var(--border2);
+  padding:10px 24px;
+  display:flex;align-items:center;gap:16px;
+  position:relative;overflow:hidden;
+}
+header::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:var(--amber-g);
+}
+.hdr-logo{
+  width:46px;height:46px;border-radius:10px;
+  background:var(--amber-g);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Orbitron',monospace;font-weight:900;font-size:17px;
+  color:#070c14;flex-shrink:0;
+  box-shadow:0 0 18px rgba(240,165,0,.35);
+}
+.hdr-info h1{
+  font-family:'Orbitron',monospace;font-size:15px;font-weight:700;
+  letter-spacing:1.5px;color:var(--amber);line-height:1.2;
+}
+.hdr-info p{font-size:11px;color:var(--muted2);letter-spacing:.4px;margin-top:1px}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.server-badge{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(15,207,122,.08);border:1px solid rgba(15,207,122,.25);
+  border-radius:20px;padding:5px 12px;font-size:11px;color:var(--green);
+  font-weight:600;letter-spacing:.5px;
+}
+.server-badge .dot{
+  width:7px;height:7px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 6px var(--green);animation:pulse 1.8s infinite;
+}
+.server-badge.offline{color:#ff3d5a;border-color:rgba(255,61,90,.25);background:rgba(255,61,90,.08)}
+.server-badge.offline .dot{background:#ff3d5a;box-shadow:0 0 6px #ff3d5a}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ═══════════════════════════════════════
+   MAIN LAYOUT
+═══════════════════════════════════════ */
+.layout{
+  flex:1;display:grid;
+  grid-template-columns:260px 1fr 300px;
+  gap:0;overflow:hidden;
+}
+
+/* ═══════════════════════════════════════
+   LEFT PANEL – CONTROLS
+═══════════════════════════════════════ */
+.left-panel{
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  overflow-y:auto;
+}
+.panel-sec{padding:14px 16px;border-bottom:1px solid var(--border)}
+.panel-sec:last-child{border-bottom:none}
+.sec-label{
+  font-family:'Orbitron',monospace;font-size:9.5px;font-weight:700;
+  letter-spacing:2px;color:var(--amber);text-transform:uppercase;
+  margin-bottom:12px;display:flex;align-items:center;gap:7px;
+}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--border2)}
+
+label.field-label{
+  display:block;font-size:10px;font-weight:600;letter-spacing:1px;
+  color:var(--muted2);text-transform:uppercase;margin-bottom:5px;
+}
+select,input{
+  width:100%;background:var(--card);border:1px solid var(--border2);
+  border-radius:7px;color:var(--text);padding:9px 12px;
+  font-family:'DM Sans',sans-serif;font-size:13px;margin-bottom:12px;
+  appearance:none;transition:border-color .2s,box-shadow .2s;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235a7a99'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 11px center;cursor:pointer;
+}
+select:focus,input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 2px rgba(240,165,0,.15)}
+
+/* algo cards */
+.algo-cards{display:flex;flex-direction:column;gap:7px;margin-bottom:4px}
+.algo-card{
+  position:relative;padding:10px 12px;border-radius:8px;cursor:pointer;
+  border:1.5px solid var(--border2);background:var(--card);
+  transition:border-color .2s,background .2s;
+}
+.algo-card:hover{border-color:var(--border);background:var(--surface)}
+.algo-card.selected{
+  border-color:var(--amber);background:rgba(240,165,0,.07);
+}
+.algo-card input[type=radio]{position:absolute;opacity:0;width:0;height:0}
+.algo-name{
+  font-family:'Orbitron',monospace;font-size:11px;font-weight:700;
+  color:var(--text);letter-spacing:.5px;
+}
+.algo-card.selected .algo-name{color:var(--amber)}
+.algo-desc{font-size:10px;color:var(--muted);margin-top:2px}
+.algo-badge{
+  position:absolute;top:8px;right:10px;
+  font-size:9px;font-weight:700;letter-spacing:.8px;
+  padding:2px 7px;border-radius:10px;
+}
+.badge-opt{background:rgba(240,165,0,.15);color:var(--amber)}
+.badge-hop{background:rgba(91,168,255,.15);color:var(--blue2)}
+.badge-exp{background:rgba(15,207,122,.15);color:var(--green)}
+
+/* buttons */
+.btn{
+  width:100%;padding:11px;border:none;border-radius:8px;
+  font-family:'Orbitron',monospace;font-size:11px;font-weight:700;
+  letter-spacing:1.5px;cursor:pointer;transition:all .2s;
+  margin-bottom:8px;
+}
+.btn-find{
+  background:var(--amber-g);color:#070c14;
+  box-shadow:0 2px 14px rgba(240,165,0,.25);
+}
+.btn-find:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(240,165,0,.4)}
+.btn-find:active{transform:translateY(0)}
+.btn-reset{
+  background:transparent;border:1px solid var(--border2);
+  color:var(--muted2);
+}
+.btn-reset:hover{border-color:var(--muted2);color:var(--text)}
+
+/* legend */
+.legend{display:flex;flex-direction:column;gap:7px}
+.legend-item{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted2)}
+.l-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+
+/* ═══════════════════════════════════════
+   CENTRE – MAP
+═══════════════════════════════════════ */
+.map-area{
+  position:relative;background:var(--bg);overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.map-bg-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(26,45,66,.45) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26,45,66,.45) 1px, transparent 1px);
+  background-size:40px 40px;
+  pointer-events:none;
+}
+.map-bg-glow{
+  position:absolute;
+  width:500px;height:500px;border-radius:50%;
+  background:radial-gradient(ellipse, rgba(240,165,0,.04) 0%, transparent 70%);
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  pointer-events:none;
+}
+#campusSvg{
+  width:100%;height:100%;display:block;
+  filter:drop-shadow(0 0 1px rgba(240,165,0,.05));
+}
+
+/* SVG elements */
+.edge{stroke:var(--border2);stroke-width:2;transition:stroke .4s,stroke-width .4s,filter .4s}
+.edge.path-edge{
+  stroke:var(--amber);stroke-width:4;
+  stroke-dasharray:10 5;
+  animation:dash .7s linear infinite;
+  filter:drop-shadow(0 0 5px var(--amber));
+}
+.edge.visit-edge{stroke:rgba(91,168,255,.35);stroke-width:2.5}
+@keyframes dash{to{stroke-dashoffset:-30}}
+
+.edge-lbl-bg{transition:opacity .3s}
+.edge-lbl{font-family:'DM Sans',sans-serif;font-size:9.5px;text-anchor:middle;pointer-events:none}
+
+.node-ring{fill:none;stroke:transparent;stroke-width:3;transition:stroke .3s,opacity .3s}
+.node-body{
+  fill:var(--card);stroke:var(--border2);stroke-width:2;
+  transition:fill .3s,stroke .3s,filter .3s;
+  cursor:pointer;
+}
+.node-body:hover{fill:#162238;stroke:var(--border)}
+.node-body.n-start{fill:rgba(15,207,122,.18);stroke:var(--green);filter:drop-shadow(0 0 8px var(--green))}
+.node-body.n-end  {fill:rgba(255,61,90,.18); stroke:var(--red);  filter:drop-shadow(0 0 8px var(--red))}
+.node-body.n-path {fill:rgba(240,165,0,.15); stroke:var(--amber);filter:drop-shadow(0 0 9px var(--amber))}
+.node-body.n-visit{fill:rgba(30,127,255,.1); stroke:var(--blue); }
+.node-lbl{
+  font-family:'DM Sans',sans-serif;font-size:10.5px;font-weight:600;
+  fill:var(--text);text-anchor:middle;pointer-events:none;
+}
+.node-ring.r-start{stroke:var(--green);opacity:.4;animation:ringPulse 1.8s infinite}
+.node-ring.r-end  {stroke:var(--red);  opacity:.4;animation:ringPulse 1.8s infinite}
+@keyframes ringPulse{0%,100%{opacity:.4;r:26}50%{opacity:.1;r:30}}
+
+/* map tooltip */
+.map-tip{
+  position:absolute;pointer-events:none;opacity:0;
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:8px;padding:7px 12px;font-size:12px;
+  box-shadow:0 4px 20px rgba(0,0,0,.5);transition:opacity .15s;
+  white-space:nowrap;z-index:10;
+}
+.map-tip.show{opacity:1}
+.tip-name{font-weight:600;color:var(--amber);margin-bottom:2px}
+.tip-id  {font-size:10px;color:var(--muted2)}
+
+/* map corner label */
+.map-corner{
+  position:absolute;top:12px;left:16px;
+  font-family:'Orbitron',monospace;font-size:10px;font-weight:600;
+  letter-spacing:1.5px;color:var(--muted);
+}
+
+/* ═══════════════════════════════════════
+   RIGHT PANEL – RESULTS
+═══════════════════════════════════════ */
+.right-panel{
+  background:var(--surface);
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;
+}
+.result-placeholder{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:24px;text-align:center;color:var(--muted);
+  gap:14px;
+}
+.placeholder-icon{
+  width:64px;height:64px;border-radius:50%;
+  border:2px dashed var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;
+}
+.placeholder-text{font-size:13px;line-height:1.6}
+.placeholder-text strong{color:var(--muted2)}
+
+/* result content */
+.r-header{
+  padding:14px 16px;border-bottom:1px solid var(--border);
+  font-family:'Orbitron',monospace;font-size:9.5px;font-weight:700;
+  letter-spacing:2px;color:var(--amber);display:flex;align-items:center;gap:8px;
+}
+.r-header .dot{width:7px;height:7px;border-radius:50%;background:var(--amber);
+  box-shadow:0 0 6px var(--amber)}
+
+.metrics-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  padding:14px 16px;border-bottom:1px solid var(--border);
+}
+.metric-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:9px;padding:11px 12px;
+}
+.metric-label{font-size:9px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.metric-val{
+  font-family:'Orbitron',monospace;font-size:18px;font-weight:700;
+  line-height:1;
+}
+.metric-unit{font-size:10px;font-weight:400;color:var(--muted2);margin-left:2px}
+.mv-amber{color:var(--amber)}
+.mv-blue {color:var(--blue2)}
+.mv-green{color:var(--green)}
+.mv-red  {color:var(--red)}
+
+.r-section{padding:12px 16px;border-bottom:1px solid var(--border)}
+.r-section:last-child{border-bottom:none}
+.r-sec-title{
+  font-family:'Orbitron',monospace;font-size:9px;font-weight:700;
+  letter-spacing:1.5px;color:var(--muted2);text-transform:uppercase;
+  margin-bottom:10px;
+}
+
+/* path steps */
+.path-list{display:flex;flex-direction:column;gap:0}
+.path-step{display:flex;align-items:center;gap:9px;padding:5px 0}
+.step-num{
+  width:20px;height:20px;border-radius:50%;flex-shrink:0;
+  background:var(--amber-g);color:#070c14;
+  font-family:'Orbitron',monospace;font-size:9px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}
+.step-num.first{background:linear-gradient(135deg,var(--green),#0fcf7a)}
+.step-num.last {background:linear-gradient(135deg,var(--red),#ff3d5a)}
+.step-name{font-size:12px;font-weight:500;flex:1}
+.step-arrow{color:var(--muted);font-size:11px;margin-left:auto;flex-shrink:0}
+.step-connector{width:1px;height:8px;background:var(--border2);margin-left:10px}
+
+/* visited tags */
+.visited-wrap{display:flex;flex-wrap:wrap;gap:5px}
+.v-tag{
+  background:rgba(30,127,255,.1);border:1px solid rgba(30,127,255,.25);
+  border-radius:12px;padding:3px 9px;font-size:10px;color:var(--blue2);font-weight:500;
+}
+
+/* algo info */
+.algo-info-card{
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:9px;padding:11px 13px;
+}
+.algo-info-name{
+  font-family:'Orbitron',monospace;font-size:11px;font-weight:700;
+  color:var(--amber);margin-bottom:4px;
+}
+.algo-info-desc{font-size:11px;color:var(--muted2);line-height:1.5}
+
+/* error / no path */
+.no-path-msg{
+  background:rgba(255,61,90,.07);border:1px solid rgba(255,61,90,.2);
+  border-radius:9px;padding:13px;text-align:center;color:var(--red);
+  font-size:13px;
+}
+
+/* loading spinner */
+.spinner{
+  width:30px;height:30px;border-radius:50%;
+  border:3px solid var(--border2);border-top-color:var(--amber);
+  animation:spin .7s linear infinite;margin:0 auto;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:24px;right:24px;z-index:100;
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:10px;padding:12px 18px;font-size:13px;
+  box-shadow:0 6px 24px rgba(0,0,0,.5);
+  transform:translateY(20px);opacity:0;
+  transition:transform .3s,opacity .3s;pointer-events:none;
+}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-color:rgba(15,207,122,.4);color:var(--green)}
+.toast.error  {border-color:rgba(255,61,90,.4);color:var(--red)}
+.toast.info   {border-color:rgba(240,165,0,.4);color:var(--amber)}
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <div class="hdr-logo">AV</div>
+  <div class="hdr-info">
+    <h1>CAMPUS PATHFINDER</h1>
+    <p>Amrita Vishwa Vidyapeetham – Nagercoil Campus</p>
+  </div>
+  <div class="hdr-right">
+    <div class="server-badge offline" id="serverBadge">
+      <span class="dot"></span>
+      <span id="serverStatus">Connecting…</span>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ MAIN LAYOUT ═══ -->
+<div class="layout">
+
+  <!-- LEFT: CONTROLS -->
+  <div class="left-panel">
+
+    <!-- Algorithm -->
+    <div class="panel-sec">
+      <div class="sec-label">Algorithm</div>
+      <div class="algo-cards">
+        <label class="algo-card selected" id="card-bellman">
+          <input type="radio" name="algo" value="bellman" checked onchange="selectAlgo(this)"/>
+          <div class="algo-name">BELLMAN-FORD</div>
+          <div class="algo-desc">Weighted shortest path</div>
+          <span class="algo-badge badge-opt">OPTIMAL</span>
+        </label>
+        <label class="algo-card" id="card-bfs">
+          <input type="radio" name="algo" value="bfs" onchange="selectAlgo(this)"/>
+          <div class="algo-name">BFS</div>
+          <div class="algo-desc">Fewest hops, unweighted</div>
+          <span class="algo-badge badge-hop">FEWEST HOPS</span>
+        </label>
+        <label class="algo-card" id="card-dfs">
+          <input type="radio" name="algo" value="dfs" onchange="selectAlgo(this)"/>
+          <div class="algo-name">DFS</div>
+          <div class="algo-desc">Depth-first exploration</div>
+          <span class="algo-badge badge-exp">EXPLORE</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Source / Destination -->
+    <div class="panel-sec">
+      <div class="sec-label">Route</div>
+      <label class="field-label">Source</label>
+      <select id="srcSel" onchange="updateSelects()"></select>
+      <label class="field-label">Destination</label>
+      <select id="dstSel" onchange="updateSelects()"></select>
+    </div>
+
+    <!-- Actions -->
+    <div class="panel-sec">
+      <button class="btn btn-find" onclick="findRoute()">▶ FIND ROUTE</button>
+      <button class="btn btn-reset" onclick="resetAll()">↺ RESET</button>
+    </div>
+
+    <!-- Legend -->
+    <div class="panel-sec">
+      <div class="sec-label">Legend</div>
+      <div class="legend">
+        <div class="legend-item"><span class="l-dot" style="background:var(--green)"></span>Start location</div>
+        <div class="legend-item"><span class="l-dot" style="background:var(--red)"></span>End location</div>
+        <div class="legend-item"><span class="l-dot" style="background:var(--amber)"></span>Shortest path</div>
+        <div class="legend-item"><span class="l-dot" style="background:var(--blue)"></span>Visited nodes</div>
+        <div class="legend-item"><span class="l-dot" style="background:var(--border2)"></span>Unvisited</div>
+      </div>
+    </div>
+
+    <!-- Tip -->
+    <div class="panel-sec" style="margin-top:auto">
+      <div style="font-size:10px;color:var(--muted);line-height:1.7">
+        💡 Click any node on the map to set it as source or destination.
+        <br/>Edge labels show <span style="color:var(--amber)">dist</span> /
+        <span style="color:var(--blue2)">time</span>.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CENTRE: MAP -->
+  <div class="map-area">
+    <div class="map-bg-grid"></div>
+    <div class="map-bg-glow"></div>
+    <div class="map-corner">NAGERCOIL CAMPUS — INTERACTIVE MAP</div>
+    <svg id="campusSvg" viewBox="0 0 640 560" xmlns="http://www.w3.org/2000/svg">
+      <g id="edgesG"></g>
+      <g id="edgeLabelsG"></g>
+      <g id="nodesG"></g>
+    </svg>
+    <div class="map-tip" id="mapTip">
+      <div class="tip-name" id="tipName"></div>
+      <div class="tip-id"   id="tipId"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: RESULTS -->
+  <div class="right-panel" id="rightPanel">
+    <div class="result-placeholder">
+      <div class="placeholder-icon">🗺</div>
+      <div class="placeholder-text">
+        Select <strong>source</strong> and <strong>destination</strong>,<br/>
+        choose an algorithm,<br/>then click <strong>Find Route</strong>.
+      </div>
+    </div>
+  </div>
+
+</div><!-- end layout -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════ */
+const API = 'http://localhost:8080';
+let graphData = null;
+let clickState = 'src'; // toggles src / dst on map click
+
+/* ═══════════════════════════════════════
+   TOAST
+═══════════════════════════════════════ */
+function toast(msg, type='info', dur=3000){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>el.classList.remove('show'), dur);
+}
+
+/* ═══════════════════════════════════════
+   SERVER STATUS CHECK
+═══════════════════════════════════════ */
+async function checkServer(){
+  const badge  = document.getElementById('serverBadge');
+  const status = document.getElementById('serverStatus');
+  try {
+    const r = await fetch(`${API}/graph`, {cache:'no-store'});
+    if(!r.ok) throw new Error();
+    graphData = await r.json();
+    badge.className  = 'server-badge';
+    status.textContent = 'C Server Online';
+    populateSelects();
+    drawMap();
+    toast('C backend connected!', 'success');
+  } catch {
+    badge.className  = 'server-badge offline';
+    status.textContent = 'Server Offline';
+    toast('C server offline. Run: ./server', 'error', 6000);
+    /* fallback: embedded data */
+    graphData = getEmbeddedGraph();
+    populateSelects();
+    drawMap();
+  }
+}
+
+/* Embedded fallback (same data as C) */
+function getEmbeddedGraph(){
+  return {
+    nodes:[
+      {id:0,name:"Main Gate",              abbr:"Gate",     x:350,y:55},
+      {id:1,name:"Admin Block",            abbr:"Admin",    x:350,y:160},
+      {id:2,name:"AVVP Block",             abbr:"AVVP",     x:155,y:215},
+      {id:3,name:"CSE Block",              abbr:"CSE",      x:520,y:215},
+      {id:4,name:"Science & Humanities",   abbr:"S&H",      x:155,y:335},
+      {id:5,name:"Civil Block",            abbr:"Civil",    x:350,y:305},
+      {id:6,name:"ECE Block",              abbr:"ECE",      x:540,y:335},
+      {id:7,name:"Library",               abbr:"Library",  x:85, y:425},
+      {id:8,name:"Canteen",               abbr:"Canteen",  x:350,y:425},
+      {id:9,name:"Girls Hostel",           abbr:"G.Hostel", x:555,y:445},
+      {id:10,name:"Anugraha Bhavan (Boys)",abbr:"Anugraha", x:185,y:500},
+      {id:11,name:"Vyasa Bhavan (Boys)",   abbr:"Vyasa",    x:475,y:500}
+    ],
+    edges:[
+      {from:0,to:1,dist:150,time:2},{from:1,to:2,dist:200,time:3},
+      {from:1,to:3,dist:200,time:3},{from:1,to:5,dist:180,time:2},
+      {from:2,to:4,dist:150,time:2},{from:2,to:5,dist:220,time:3},
+      {from:3,to:5,dist:250,time:3},{from:3,to:6,dist:180,time:2},
+      {from:4,to:7,dist:200,time:3},{from:4,to:8,dist:250,time:3},
+      {from:5,to:6,dist:200,time:3},{from:5,to:8,dist:150,time:2},
+      {from:6,to:9,dist:200,time:3},{from:6,to:11,dist:220,time:3},
+      {from:7,to:10,dist:160,time:2},{from:8,to:10,dist:200,time:3},
+      {from:8,to:11,dist:180,time:2},{from:9,to:11,dist:180,time:2}
+    ]
+  };
+}
+
+/* JS fallback algorithms (mirror of C) */
+function jsRoute(algo, src, dst){
+  const N = graphData.nodes.length;
+  const edges = graphData.edges;
+  const adj = {};
+  graphData.nodes.forEach(n=>adj[n.id]=[]);
+  edges.forEach(e=>{
+    adj[e.from].push({to:e.to,dist:e.dist,time:e.time});
+    adj[e.to].push({to:e.from,dist:e.dist,time:e.time});
+  });
+
+  function edgeDist(u,v){const e=edges.find(e=>(e.from==u&&e.to==v)||(e.from==v&&e.to==u));return e?e.dist:0}
+  function edgeTime(u,v){const e=edges.find(e=>(e.from==u&&e.to==v)||(e.from==v&&e.to==u));return e?e.time:0}
+
+  function reconstruct(prev, s, d){
+    if(d!==s&&prev[d]===-1) return [];
+    const p=[]; let c=d;
+    while(c!==-1){p.unshift(c);c=prev[c];}
+    return p[0]===s?p:[];
+  }
+
+  let path=[], visited=[], dist=0, time=0;
+
+  if(algo==='bellman'){
+    const d=new Array(N).fill(Infinity), prev=new Array(N).fill(-1);
+    const vs=new Set(); d[src]=0;
+    for(let it=0;it<N-1;it++){
+      let upd=false;
+      for(const e of edges){
+        const {from:u,to:v,dist:w}=e;
+        if(d[u]!==Infinity&&d[u]+w<d[v]){d[v]=d[u]+w;prev[v]=u;upd=true;vs.add(v);}
+        if(d[v]!==Infinity&&d[v]+w<d[u]){d[u]=d[v]+w;prev[u]=v;upd=true;vs.add(u);}
+      }
+      if(!upd) break;
+    }
+    vs.add(src);
+    path=reconstruct(prev,src,dst); visited=[...vs];
+    if(path.length){dist=d[dst];time=path.slice(0,-1).reduce((a,u,i)=>a+edgeTime(u,path[i+1]),0);}
+  } else if(algo==='bfs'){
+    const prev=new Array(N).fill(-1),vis=new Array(N).fill(false),q=[src];
+    vis[src]=true;
+    while(q.length){
+      const u=q.shift(); visited.push(u);
+      if(u===dst) break;
+      for(const nb of adj[u]) if(!vis[nb.to]){vis[nb.to]=true;prev[nb.to]=u;q.push(nb.to);}
+    }
+    path=reconstruct(prev,src,dst);
+    if(path.length){
+      dist=path.slice(0,-1).reduce((a,u,i)=>a+edgeDist(u,path[i+1]),0);
+      time=path.slice(0,-1).reduce((a,u,i)=>a+edgeTime(u,path[i+1]),0);
+    }
+  } else {
+    const prev=new Array(N).fill(-1),vis=new Array(N).fill(false);
+    let found=false;
+    function dfsR(u){
+      vis[u]=true;visited.push(u);
+      if(u===dst){found=true;return;}
+      for(const nb of adj[u]) if(!vis[nb.to]&&!found){prev[nb.to]=u;dfsR(nb.to);}
+    }
+    dfsR(src);
+    path=found?reconstruct(prev,src,dst):[];
+    if(path.length){
+      dist=path.slice(0,-1).reduce((a,u,i)=>a+edgeDist(u,path[i+1]),0);
+      time=path.slice(0,-1).reduce((a,u,i)=>a+edgeTime(u,path[i+1]),0);
+    }
+  }
+
+  const algoName={bellman:'Bellman-Ford',bfs:'BFS',dfs:'DFS'}[algo];
+  return {algo:algoName,src,dst,dist,time,found:path.length>0,path,visited};
+}
+
+/* ═══════════════════════════════════════
+   SELECTS
+═══════════════════════════════════════ */
+function populateSelects(){
+  ['srcSel','dstSel'].forEach((id,idx)=>{
+    const sel=document.getElementById(id);
+    sel.innerHTML='';
+    graphData.nodes.forEach(n=>{
+      const o=document.createElement('option');
+      o.value=n.id; o.textContent=n.name;
+      sel.appendChild(o);
+    });
+    sel.value=idx===0?0:9; // default Gate → Girls Hostel
+  });
+}
+
+function updateSelects(){}
+
+function selectAlgo(radio){
+  document.querySelectorAll('.algo-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('card-'+radio.value).classList.add('selected');
+}
+
+/* ═══════════════════════════════════════
+   SVG MAP DRAWING
+═══════════════════════════════════════ */
+function svgEl(tag,attrs={}){
+  const el=document.createElementNS('http://www.w3.org/2000/svg',tag);
+  Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v));
+  return el;
+}
+
+function drawMap(){
+  if(!graphData) return;
+  const eg=document.getElementById('edgesG');
+  const elg=document.getElementById('edgeLabelsG');
+  const ng=document.getElementById('nodesG');
+  eg.innerHTML=''; elg.innerHTML=''; ng.innerHTML='';
+
+  /* Edges */
+  graphData.edges.forEach(e=>{
+    const a=graphData.nodes[e.from], b=graphData.nodes[e.to];
+    const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+
+    const line=svgEl('line',{
+      x1:a.x,y1:a.y,x2:b.x,y2:b.y,
+      class:'edge',id:`e-${e.from}-${e.to}`
+    });
+    eg.appendChild(line);
+
+    /* label background */
+    const bg=svgEl('rect',{
+      x:mx-22,y:my-15,width:44,height:22,rx:5,
+      fill:'rgba(7,12,20,.88)',stroke:'rgba(26,45,66,.9)','stroke-width':'.5',
+      class:'edge-lbl-bg'
+    });
+    elg.appendChild(bg);
+
+    const lt=svgEl('text',{x:mx,y:my-4,class:'edge-lbl',fill:'#f0a500'});
+    lt.textContent=`${e.dist}m`;
+    elg.appendChild(lt);
+
+    const lt2=svgEl('text',{x:mx,y:my+8,class:'edge-lbl',fill:'#5ba8ff'});
+    lt2.textContent=`${e.time}min`;
+    elg.appendChild(lt2);
+  });
+
+  /* Nodes */
+  graphData.nodes.forEach(n=>{
+    const g=svgEl('g',{id:`ng-${n.id}`,cursor:'pointer'});
+
+    /* pulse ring */
+    const ring=svgEl('circle',{cx:n.x,cy:n.y,r:26,class:'node-ring',id:`ring-${n.id}`});
+    g.appendChild(ring);
+
+    /* body */
+    const circle=svgEl('circle',{cx:n.x,cy:n.y,r:22,class:'node-body',id:`node-${n.id}`});
+    g.appendChild(circle);
+
+    /* label – split long abbrs */
+    const words=n.abbr.split(' ');
+    if(words.length===1){
+      const t=svgEl('text',{x:n.x,y:n.y+4,class:'node-lbl'});
+      t.textContent=n.abbr; g.appendChild(t);
+    } else {
+      words.forEach((w,i)=>{
+        const t=svgEl('text',{x:n.x,y:n.y+(i-(words.length-1)/2)*13+4,class:'node-lbl'});
+        t.textContent=w; g.appendChild(t);
+      });
+    }
+
+    /* hover tooltip */
+    g.addEventListener('mouseenter',ev=>{
+      const tip=document.getElementById('mapTip');
+      document.getElementById('tipName').textContent=n.name;
+      document.getElementById('tipId').textContent=`Node ID: ${n.id}`;
+      const rect=document.getElementById('campusSvg').getBoundingClientRect();
+      const sx=n.x/640*rect.width+rect.left;
+      const sy=n.y/560*rect.height+rect.top;
+      tip.style.left=(sx+28)+'px'; tip.style.top=(sy-20)+'px';
+      tip.classList.add('show');
+    });
+    g.addEventListener('mouseleave',()=>{
+      document.getElementById('mapTip').classList.remove('show');
+    });
+
+    /* click to select src/dst */
+    g.addEventListener('click',()=>onNodeClick(n.id));
+
+    ng.appendChild(g);
+  });
+}
+
+function onNodeClick(id){
+  if(clickState==='src'){
+    document.getElementById('srcSel').value=id;
+    clickState='dst';
+    toast(`Start: ${graphData.nodes[id].name}`, 'info', 1800);
+  } else {
+    document.getElementById('dstSel').value=id;
+    clickState='src';
+    toast(`End: ${graphData.nodes[id].name}`, 'info', 1800);
+    findRoute();
+  }
+}
+
+/* ═══════════════════════════════════════
+   HIGHLIGHT PATH ON MAP
+═══════════════════════════════════════ */
+function clearHighlight(){
+  document.querySelectorAll('.node-body').forEach(el=>{
+    el.className='node-body';
+  });
+  document.querySelectorAll('.node-ring').forEach(el=>{
+    el.className='node-ring';
+  });
+  document.querySelectorAll('.edge').forEach(el=>{
+    el.className='edge';
+  });
+}
+
+function highlightResult(data){
+  clearHighlight();
+  const {path,visited,src,dst}=data;
+
+  /* visited */
+  (visited||[]).forEach(id=>{
+    if(!path.includes(id)){
+      const el=document.getElementById(`node-${id}`);
+      if(el) el.classList.add('n-visit');
+    }
+  });
+
+  /* path edges */
+  for(let i=0;i<path.length-1;i++){
+    const u=path[i],v=path[i+1];
+    let el=document.getElementById(`e-${u}-${v}`)||
+           document.getElementById(`e-${v}-${u}`);
+    if(el){el.className='edge path-edge';}
+  }
+
+  /* path nodes */
+  path.forEach(id=>{
+    const el=document.getElementById(`node-${id}`);
+    if(el) el.classList.add('n-path');
+  });
+
+  /* start / end */
+  const se=document.getElementById(`node-${src}`);
+  const ee=document.getElementById(`node-${dst}`);
+  if(se){se.className='node-body n-start';
+    document.getElementById(`ring-${src}`).className='node-ring r-start';}
+  if(ee){ee.className='node-body n-end';
+    document.getElementById(`ring-${dst}`).className='node-ring r-end';}
+}
+
+/* ═══════════════════════════════════════
+   RENDER RESULT PANEL
+═══════════════════════════════════════ */
+const algoInfo={
+  'Bellman-Ford':{desc:'Relaxes all edges V−1 times. Guarantees globally optimal weighted shortest path. O(V×E) time.'},
+  'BFS':{desc:'Explores level by level via a queue. Finds path with fewest hops on unweighted graph. O(V+E) time.'},
+  'DFS':{desc:'Explores as deep as possible via recursion. Finds a valid path, not necessarily shortest. O(V+E) time.'}
+};
+
+function renderResult(data){
+  const panel=document.getElementById('rightPanel');
+
+  if(!data.found){
+    panel.innerHTML=`
+      <div class="r-header"><span class="dot"></span>RESULT</div>
+      <div style="padding:20px">
+        <div class="no-path-msg">❌ No path found between<br/><strong>${graphData.nodes[data.src].name}</strong> and <strong>${graphData.nodes[data.dst].name}</strong></div>
+      </div>`;
+    return;
+  }
+
+  const pathSteps=data.path.map((id,i)=>{
+    let numCls='step-num';
+    if(i===0) numCls+=' first';
+    if(i===data.path.length-1) numCls+=' last';
+    const arrow=i<data.path.length-1?`<span class="step-arrow">↓</span>`:'';
+    const connector=i<data.path.length-1?`<div class="step-connector"></div>`:'';
+    return `
+      <div class="path-step">
+        <span class="${numCls}">${i+1}</span>
+        <span class="step-name">${graphData.nodes[id].name}</span>
+        ${arrow}
+      </div>
+      ${connector}`;
+  }).join('');
+
+  const visitedTags=(data.visited||[]).map(id=>
+    `<span class="v-tag">${graphData.nodes[id].abbr}</span>`
+  ).join('');
+
+  const info=algoInfo[data.algo]||{desc:''};
+
+  panel.innerHTML=`
+    <div class="r-header"><span class="dot"></span>RESULT</div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Distance</div>
+        <div class="metric-val mv-amber">${data.dist}<span class="metric-unit">m</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Walk Time</div>
+        <div class="metric-val mv-blue">${data.time}<span class="metric-unit">min</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Stops</div>
+        <div class="metric-val mv-green">${data.path.length}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Visited</div>
+        <div class="metric-val mv-red">${(data.visited||[]).length}</div>
+      </div>
+    </div>
+
+    <div class="r-section">
+      <div class="r-sec-title">Algorithm Used</div>
+      <div class="algo-info-card">
+        <div class="algo-info-name">${data.algo}</div>
+        <div class="algo-info-desc">${info.desc}</div>
+      </div>
+    </div>
+
+    <div class="r-section">
+      <div class="r-sec-title">Path — ${data.path.length} stops</div>
+      <div class="path-list">${pathSteps}</div>
+    </div>
+
+    <div class="r-section">
+      <div class="r-sec-title">Nodes Explored (${(data.visited||[]).length})</div>
+      <div class="visited-wrap">${visitedTags}</div>
+    </div>
+  `;
+}
+
+/* ═══════════════════════════════════════
+   FIND ROUTE
+═══════════════════════════════════════ */
+async function findRoute(){
+  if(!graphData){toast('Graph not loaded yet.','error');return;}
+  const src=parseInt(document.getElementById('srcSel').value);
+  const dst=parseInt(document.getElementById('dstSel').value);
+  const algo=document.querySelector('input[name="algo"]:checked').value;
+
+  if(src===dst){toast('Source and destination are the same!','error');return;}
+
+  /* show loading */
+  document.getElementById('rightPanel').innerHTML=`
+    <div class="r-header"><span class="dot"></span>COMPUTING…</div>
+    <div style="padding:40px;display:flex;align-items:center;justify-content:center">
+      <div class="spinner"></div>
+    </div>`;
+
+  /* try C server first */
+  let data=null;
+  const serverBadge=document.getElementById('serverBadge');
+  const isOnline=!serverBadge.classList.contains('offline');
+
+  if(isOnline){
+    try{
+      const r=await fetch(`${API}/route?algo=${algo}&src=${src}&dst=${dst}`);
+      data=await r.json();
+    } catch{ data=null; }
+  }
+
+  /* fallback to JS */
+  if(!data){
+    await new Promise(r=>setTimeout(r,400)); /* slight delay for UX */
+    data=jsRoute(algo,src,dst);
+    if(isOnline) toast('Used JS fallback (server unreachable).','info');
+  }
+
+  highlightResult(data);
+  renderResult(data);
+  if(data.found)
+    toast(`Route found: ${data.dist}m, ${data.time} min`, 'success');
+  else
+    toast('No path found between these locations.','error');
+}
+
+/* ═══════════════════════════════════════
+   RESET
+═══════════════════════════════════════ */
+function resetAll(){
+  clearHighlight();
+  document.getElementById('rightPanel').innerHTML=`
+    <div class="result-placeholder">
+      <div class="placeholder-icon">🗺</div>
+      <div class="placeholder-text">
+        Select <strong>source</strong> and <strong>destination</strong>,<br/>
+        choose an algorithm,<br/>then click <strong>Find Route</strong>.
+      </div>
+    </div>`;
+  clickState='src';
+}
+
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', checkServer);
+</script>
+</body>
+</html>
